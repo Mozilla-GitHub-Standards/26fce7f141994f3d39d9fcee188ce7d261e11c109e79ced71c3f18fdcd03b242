@@ -214,17 +214,23 @@ class Repo(object):
             return [os.path.relpath(f) for f in stdout.split()] if stdout else []
         return []
 
-    def do_branch(self, parser=None, home=False, **kwargs):
+    def do_branch(self, parser=None, home=False, commit=False, **kwargs):
         if parser:
             parser.add_argument(
                 '-H', '--home',
                 action='store_true',
                 help=fmt('reset to the {0} branch', self.branch))
+            parser.add_argument(
+                '-c', '--commit',
+                action='store_true',
+                help='after branch add a commit')
             return
         if home:
             self.run('git checkout '+self.branch)
         else:
             self.run('git checkout -b dev/'+self.word)
+            if commit:
+                self.do_commit(**kwargs)
 
     def do_change(self, parser=None, **kwargs):
         if parser:
