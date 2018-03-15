@@ -422,14 +422,14 @@ class Repo(object):
                 action='store_true',
                 help='override default behavior to --hard')
             return
+        home = self.git_home_commit
+        curr = self.git_current_commit
         self.run('git checkout ' + self.home_branch)
-        if self.git_current_commit != self.git_home_commit:
+        if curr != home:
             flags = '--hard' if hard else ''
-            self.run(fmt('git reset {0} {1}', flags, self.git_home_commit))
+            self.run(fmt('git reset {0} {1}', flags, home))
         else:
-            print(
-                'NO OP: current and home have the same sha1 hash:',
-                self.git_home_commit)
+            pfmt('NO OP: current and home have the same sha1 hash: {home}')
 
         if hard:
             if self.git_branches():
