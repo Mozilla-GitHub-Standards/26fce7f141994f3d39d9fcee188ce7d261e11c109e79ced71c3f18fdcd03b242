@@ -301,25 +301,25 @@ class Repo(object):
             return
 
     def do_modify(self, parser=None, filepath=None, lineno=None, modify_type='random', **kwargs):
-        MODIFY_TYPES = ['random', 'prepend', 'append', 'prefix', 'suffix']
+        modify_cmds = dict(
+            append="sed -i '/^{line}$/a {content}' {filepath}",
+            prepend="sed -i '/^{line}$/i {content}' {filepath}",
+            prefix="sed -i 's/^{line}$/{content} &/' {filepath}",
+            suffix="sed -i '/^{line}/ s/$/ {content}/' {filepath}",
+        )
         if parser:
             parser.add_argument(
                 '--type',
                 metavar='TYPE',
                 dest='modify_type',
                 default='random',
-                choices=MODIFY_TYPES,
+                choices=modify_cmds.keys(),
                 nargs='?',
                 help='default="%(default)s"; choose modify style; choices=[%(choices)s]')
             return
         if modify_type == 'random':
-            modify_type = MODIFY_TYPES[random.randint(1, len(MODIFY_TYPES) - 1)]
-        cmd = dict(
-            append="sed -i '/^{line}$/a {content}' {filepath}",
-            prepend="sed -i '/^{line}$/i {content}' {filepath}",
-            prefix="sed -i 's/^{line}$/{content} &/' {filepath}",
-            suffix="sed -i '/^{line}/ s/$/ {content}/' {filepath}",
-        )[modify_type]
+            modify_type = list(modify_cmds.keys())[random.randint(0, len(modify_cmds.keys()) - 1)]
+        cmd = modify_cmds[modify_type]
         if filepath is None:
             filepath = self.find_random_filepath()
         lines = self.get_lines(filepath)
