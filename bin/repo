@@ -277,7 +277,7 @@ class Repo(object):
         changes = self.git_changes()
         if not changes:
             self.do_change(**kwargs)
-            changes = self.changes()
+            changes = self.git_changes()
         changes = '\n'.join(['  '+change for change in changes])
         self.run(fmt('git add {SRCPATH}'))
         self.run(fmt('''git commit -m "'{name}' commit message for:\n{changes}"'''))
