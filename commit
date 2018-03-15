@@ -1,0 +1,17 @@
+#!/bin/bash
+
+REPOROOT=`git rev-parse --show-toplevel`
+
+if [ -n "$DEBUG" ]; then
+    PS4=':${LINENO}+'
+    set -x
+fi
+
+# reset non bin/* changes
+bin/reset --hard
+
+# add files in bin/ to be committed
+git add bin/
+
+# start commit workflow
+git commit
