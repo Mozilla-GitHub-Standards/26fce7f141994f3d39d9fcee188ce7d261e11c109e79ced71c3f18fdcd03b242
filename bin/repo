@@ -264,7 +264,7 @@ class Repo(object):
         if branch:
             return self.do_branch(commit=True, **kwargs)
         name = self.gen_word
-        changes = self.changes()
+        changes = self.git_changes()
         if not changes:
             self.do_change(**kwargs)
             changes = self.changes()
