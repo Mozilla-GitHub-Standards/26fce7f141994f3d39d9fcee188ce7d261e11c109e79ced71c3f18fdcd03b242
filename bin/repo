@@ -247,9 +247,9 @@ class Repo(object):
             parser.add_argument(
                 '-c', '--count',
                 metavar='INT',
-                default=1,
+                default=random.randint(1, 5),
                 type=int,
-                help='default="%(default)s"; number of changes to perform')
+                help='default="rand(1, 5)"; number of changes to perform')
             return
         if count is None:
             count = random.randint(1, 5)
