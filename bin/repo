@@ -243,9 +243,15 @@ class Repo(object):
         else:
             self.do_create(**kwargs)
 
-    def do_commit(self, parser=None, **kwargs):
+    def do_commit(self, parser=None, branch=False, **kwargs):
         if parser:
+            parser.add_argument(
+                '-b', '--branch',
+                action='store_true',
+                help='before commit add a branch')
             return
+        if branch:
+            return self.do_branch(commit=True, **kwargs)
         name = self.word
         changes = self.changes()
         if not changes:

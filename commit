@@ -14,4 +14,4 @@ bin/reset --hard
 git add bin/
 
 # start commit workflow
-git commit
+git commit --verbose
