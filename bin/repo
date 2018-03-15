@@ -186,7 +186,8 @@ class Repo(object):
         return open(filepath).read().strip().split('\n')
 
     def branches(self, prefix='dev/'):
-        _, stdout, _ = self.run(r'''git for-each-ref --shell --format="%(refname)" refs/heads/ | sed "s/'refs\/heads\/\(.*\)'/\1/"''', verbose=False)
+        cmd = r'''git for-each-ref --shell --format="%(refname)" refs/heads/ | sed "s/'refs\/heads\/\(.*\)'/\1/"'''
+        _, stdout, _ = self.run(cmd, verbose=False)
         def test(branch):
             return prefix is None or branch.startswith(prefix)
         return [clean(branch) for branch in stdout.split('\n') if test(branch)]
