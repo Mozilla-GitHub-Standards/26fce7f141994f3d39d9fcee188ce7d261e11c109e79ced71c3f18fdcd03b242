@@ -36,6 +36,11 @@ RED     = '\033[01;31m'
 class NoFilesToModify(Exception):
     pass
 
+class LinenoGreaterThanNumberOfLines(Exception):
+    def __init__(self, lineno, filepath):
+        msg = fmt('lineno={lineno} filepath={filepath}')
+        super(LinenoGreaterThanNumberOfLines, self).__init__(msg)
+
 # the following colorize code was taken from here and slighly modified
 # src: https://stackoverflow.com/a/6196103
 def colorize(stdout_color, stderr_color, enabled=True):
@@ -145,7 +150,7 @@ class Repo(object):
             print(stderr, file=sys.stderr)
 
     @property
-    def beginning(self):
+    def git_home_commit(self):
         '''
         this will print the second to last commit unless there is only one commit
         '''
@@ -155,7 +160,7 @@ class Repo(object):
         return stdout
 
     @property
-    def current(self):
+    def git_current_commit(self):
         '''
         return current sha
         '''
@@ -169,38 +174,38 @@ class Repo(object):
             return self._count
 
     @property
-    def word(self):
+    def gen_word(self):
         '''
         return random word without capitals or apostrophes
         '''
         _, stdout, _ =self.run('./word', cwd=SCRIPTPATH, verbose=False)
         return clean(stdout)
 
-    def words(self, count):
+    def gen_words(self, count):
         '''
         return random words without capitals or apostrophes
         '''
-        return [self.word for i in range(0, count)]
+        return [self.gen_word for i in range(0, count)]
 
-    def lines(self, filepath, count=None):
+    def get_lines(self, filepath, count=None):
         return open(filepath).read().strip().split('\n')
 
-    def branches(self, prefix='dev/'):
+    def git_branches(self, prefix='dev/'):
         cmd = r'''git for-each-ref --shell --format="%(refname)" refs/heads/ | sed "s/'refs\/heads\/\(.*\)'/\1/"'''
         _, stdout, _ = self.run(cmd, verbose=False)
         def test(branch):
             return prefix is None or branch.startswith(prefix)
         return [clean(branch) for branch in stdout.split('\n') if test(branch)]
 
-    def path(self, maximum, minimum=0, prefix=SRCPATH):
-        words = self.words(random.randint(minimum, maximum))
+    def gen_filepath(self, maximum, minimum=0, prefix=SRCPATH):
+        words = self.gen_words(random.randint(minimum, maximum))
         path = os.path.join(*words) if words else ''
         return os.path.relpath(os.path.join(prefix, path))
 
-    def content(self, maximum, minimum=1):
-        return '\n'.join(self.words(random.randint(minimum, maximum)))
+    def gen_content(self, maximum, minimum=1):
+        return '\n'.join(self.gen_words(random.randint(minimum, maximum)))
 
-    def changes(self, add=True, verbose=False):
+    def git_changes(self, add=True, verbose=False):
         if os.path.isdir(SRCPATH):
             if add:
                 self.run(fmt('git add {SRCPATH}'), verbose=verbose)
@@ -208,7 +213,12 @@ class Repo(object):
             return stdout.split('\n') if stdout else []
         return []
 
-    def filepaths(self, srcpath=SRCPATH, verbose=False):
+    def find_random_filepath(self, srcpath=SRCPATH, verbose=False):
+        if os.path.isdir(srcpath):
+            _, stdout, _ = self.run(fmt('find {srcpath} -type f | sort -R --random-source=/dev/urandom | head -1'), verbose=verbose)
+        return stdout
+
+    def find_filepaths(self, srcpath=SRCPATH, verbose=False):
         if os.path.isdir(srcpath):
             _, stdout, _ = self.run(fmt('find {srcpath} -type f'), verbose=verbose)
             return [os.path.relpath(f) for f in stdout.split()] if stdout else []
@@ -228,14 +238,14 @@ class Repo(object):
         if home:
             self.run('git checkout '+self.branch)
         else:
-            self.run('git checkout -b dev/'+self.word)
+            self.run('git checkout -b dev/'+self.gen_word)
             if commit:
                 self.do_commit(**kwargs)
 
     def do_change(self, parser=None, **kwargs):
         if parser:
             return
-        if len(self.filepaths()):
+        if len(self.find_filepaths()):
             index = random.randint(1, 2)
             {
                 1: self.do_create,
@@ -253,7 +263,7 @@ class Repo(object):
             return
         if branch:
             return self.do_branch(commit=True, **kwargs)
-        name = self.word
+        name = self.gen_word
         changes = self.changes()
         if not changes:
             self.do_change(**kwargs)
@@ -266,35 +276,32 @@ class Repo(object):
         if parser:
             return
 
-    def do_create(self, parser=None, **kwargs):
+    def do_create(self, parser=None, filepath=None, content=None, **kwargs):
         if parser:
             return
-        name = self.word
-        path = self.path(2)
-        content = self.content(3)
-        self.run(fmt('mkdir -p {path}'))
-        self.run(fmt('echo "{content}" > {path}/{name}'))
+        if filepath is None:
+            filepath = self.gen_filepath(3)
+        if content is None:
+            content = self.gen_content(3)
+        self.run(fmt('mkdir -p `dirname {filepath}`'))
+        self.run(fmt('echo "{content}" > {filepath}'))
 
     def do_merge(self, parser, **kwargs):
         if parser:
             return
 
-    def do_modify(self, parser=None, modify_type='random', filepaths=None, **kwargs):
+    def do_modify(self, parser=None, filepath=None, lineno=None, modify_type='random', **kwargs):
         MODIFY_TYPES = ['random', 'prepend', 'append', 'prefix', 'suffix']
         if parser:
             parser.add_argument(
                 '--type',
+                metavar='TYPE',
                 dest='modify_type',
                 default='random',
                 choices=MODIFY_TYPES,
                 nargs='?',
                 help='default="%(default)s"; choose modify style; choices=[%(choices)s]')
             return
-        if filepaths is None:
-            filepaths = self.filepaths()
-        if not filepaths:
-            raise NoFilesToModify
-        count = random.randint(1, len(filepaths))
         if modify_type == 'random':
             modify_type = MODIFY_TYPES[random.randint(1, len(MODIFY_TYPES) - 1)]
         cmd = dict(
@@ -303,13 +310,16 @@ class Repo(object):
             prefix="sed -i 's/^{line}$/{content} &/' {filepath}",
             suffix="sed -i '/^{line}/ s/$/ {content}/' {filepath}",
         )[modify_type]
-        for i in range(0, count):
-            filepath = filepaths[i]
-            content = self.content(1)
-            lines = self.lines(filepath)
-            index = random.randint(0, len(lines) - 1)
-            line = lines[index]
-            self.run(fmt(cmd))
+        if filepath is None:
+            filepath = self.find_random_filepath()
+        lines = self.get_lines(filepath)
+        if lineno is None:
+            lineno = random.randint(1, len(lines))
+        if lineno > len(lines):
+            raise LinenoGreaterThanNumberOfLines(lineno, filepath)
+        line = lines[lineno - 1]
+        content = self.gen_content(1)
+        self.run(fmt(cmd))
 
     def do_munge(self, parser=None, **kwargs):
         if parser:
@@ -327,16 +337,16 @@ class Repo(object):
                 help='override default behavior to --hard')
             return
         self.run('git checkout ' + self.branch)
-        if self.current != self.beginning:
+        if self.git_current_commit != self.git_home_commit:
             flags = '--hard' if hard else ''
-            self.run(fmt('git reset {0} {1}', flags, self.beginning))
+            self.run(fmt('git reset {0} {1}', flags, self.git_home_commit))
         else:
             print(
-                'NO OP: current and beginning have the same sha1 hash:',
-                self.beginning)
+                'NO OP: current and home have the same sha1 hash:',
+                self.git_home_commit)
 
         if hard:
-            if self.branches():
+            if self.git_branches():
                 self.run('''git branch -D $(printf "%s\n" $(git branch) | grep 'dev/')''')
             self.run('git clean -xfd --exclude=bin/')
 
