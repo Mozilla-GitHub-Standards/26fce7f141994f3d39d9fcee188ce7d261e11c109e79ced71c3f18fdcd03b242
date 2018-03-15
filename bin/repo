@@ -197,7 +197,7 @@ class Repo(object):
             return prefix is None or branch.startswith(prefix)
         return [clean(branch) for branch in stdout.split('\n') if test(branch)]
 
-    def gen_filepath(self, maximum, minimum=0, prefix=SRCPATH):
+    def gen_filepath(self, maximum, minimum=1, prefix=SRCPATH):
         words = self.gen_words(random.randint(minimum, maximum))
         path = os.path.join(*words) if words else ''
         return os.path.relpath(os.path.join(prefix, path))
