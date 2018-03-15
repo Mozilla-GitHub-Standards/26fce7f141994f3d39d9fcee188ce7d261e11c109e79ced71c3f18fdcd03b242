@@ -20,6 +20,9 @@ sys.dont_write_bytecode = True
 from utils.format import fmt, pfmt
 
 def clean(obj):
+    '''
+    clean: decode and strip if bytes object provided
+    '''
     if isinstance(obj, bytes):
         return obj.decode('utf-8').strip()
     return obj
