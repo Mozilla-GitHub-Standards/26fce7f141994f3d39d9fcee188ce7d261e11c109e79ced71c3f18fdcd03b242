@@ -213,9 +213,9 @@ class Repo(object):
             return stdout.split('\n') if stdout else []
         return []
 
-    def find_random_filepath(self, srcpath=SRCPATH, verbose=False):
+    def find_random_filepath(self, srcpath=SRCPATH, count=1, verbose=False):
         if os.path.isdir(srcpath):
-            _, stdout, _ = self.run(fmt('find {srcpath} -type f | sort -R --random-source=/dev/urandom | head -1'), verbose=verbose)
+            _, stdout, _ = self.run(fmt('find {srcpath} -type f | sort -R --random-source=/dev/urandom | head -{count}'), verbose=verbose)
         return stdout
 
     def find_filepaths(self, srcpath=SRCPATH, verbose=False):
