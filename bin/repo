@@ -321,12 +321,16 @@ class Repo(object):
                 self.do_create(**kwargs)
             count -= 1
 
-    def do_commit(self, parser=None, branch=False, **kwargs):
+    def do_commit(self, parser=None, name=None, branch=False, **kwargs):
         '''
         do_commit: create commit, optionally creating changes (if none exit) and
                    optionally creating a branch before
         '''
         if parser:
+            parser.add_argument(
+                '-n', '--name',
+                default=None,
+                help='default="<random-word>"; choose the name of the commit to create')
             parser.add_argument(
                 '-b', '--branch',
                 action='store_true',
@@ -334,7 +338,8 @@ class Repo(object):
             return
         if branch:
             return self.do_branch(commit=True, **kwargs)
-        name = self.gen_word
+        if name is None:
+            name = self.gen_word
         changes = self.git_changes()
         if not changes:
             self.do_change(**kwargs)
