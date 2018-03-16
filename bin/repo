@@ -205,7 +205,7 @@ class Repo(object):
         '''
         gen_word: return random word without capitals or apostrophes
         '''
-        _, stdout, _ =self.run('./word', cwd=SCRIPTPATH, verbose=False)
+        _, stdout, _ = self.run('./word', cwd=SCRIPTPATH, verbose=False)
         return clean(stdout)
 
     def gen_words(self, count):
