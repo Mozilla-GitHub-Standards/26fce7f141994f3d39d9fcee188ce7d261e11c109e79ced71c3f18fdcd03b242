@@ -1,0 +1,4 @@
+[submodule "bin/utils"]
+	path = bin/utils
+	url = ssh://git@github.com/scottidler/utils
+	branch = master
