@@ -17,7 +17,7 @@ from subprocess import check_call, check_output, Popen, PIPE, CalledProcessError
 
 sys.dont_write_bytecode = True
 
-from utils.format import fmt, pfmt
+from utils.fmt import fmt, pfmt
 
 def clean(obj):
     '''
